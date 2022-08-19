@@ -6,7 +6,7 @@ export class BotClient {
   static readonly client: Client = BotClient.getDiscordClient();
 
   private static getDiscordClient() {
-    console.log("Calling get discord client");
+    console.log("Getting discord client");
     return new Client({
       intents: [
         GatewayIntentBits.Guilds,

@@ -1,10 +1,3 @@
-import { Client, GatewayIntentBits } from "discord.js";
-import {
-  createAudioPlayer,
-  createAudioResource,
-  joinVoiceChannel,
-} from "@discordjs/voice";
-import got from "got";
 import { NotACommandError, parseMessageCommands } from "./util";
 import { commandNameAndHandlerDict } from "./bot-commands";
 import { BotClient, MusicPlayer } from "./singletons";
@@ -49,7 +42,7 @@ client.on("messageCreate", async (message) => {
   // Check whether command is supported
   if (!(messageCmdInfo.command in commandNameAndHandlerDict)) {
     message.channel.send(
-      `${messageCmdInfo} is not a valid command, type !help to get a full list of commands`
+      `${messageCmdInfo.command} is not a valid command, type !help to get a full list of commands`
     );
     return;
   }

@@ -1,3 +1,5 @@
+import { commandPrefix } from "./configs";
+
 interface iMessageCommandInfo {
   command: string;
   arguments: Array<string>;
@@ -16,10 +18,10 @@ export function parseMessageCommands(messageStr: string): {
   };
 
   // Check whether it's a command
-  if (messageStr.length === 0 || messageStr[0] !== "!")
+  if (messageStr.length === 0 || messageStr[0] !== commandPrefix)
     return { info, error: NotACommandError };
 
-  messageStr = messageStr.slice(1); // Trim initial "!" character
+  messageStr = messageStr.slice(1); // Trim initial command prefix character
 
   // Split message
   const splitMessages = messageStr.split(" ");

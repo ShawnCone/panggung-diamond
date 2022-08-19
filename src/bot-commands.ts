@@ -1,14 +1,11 @@
-import {
-  AudioPlayer,
-  createAudioResource,
-  joinVoiceChannel,
-} from "@discordjs/voice";
+import { createAudioResource, joinVoiceChannel } from "@discordjs/voice";
 import {
   Client,
   InternalDiscordGatewayAdapterCreator,
   Message,
 } from "discord.js";
 import got from "got/dist/source";
+import { commandPrefix } from "./configs";
 import { BotClient, MusicPlayer } from "./singletons";
 import { parseMessageCommands } from "./util";
 import { getYoutubeAudioURL } from "./youtube-downloader";
@@ -53,18 +50,6 @@ interface iCmdNameAndInfoObj {
     handler: CmdHandlerFunction;
   };
 }
-
-export const commandNameAndHandlerDict: iCmdNameAndInfoObj = {
-  play: {
-    description:
-      "Plays youtube URL separated by a space. Example: !play (youtube_url)",
-    handler: handlePlayCommand,
-  },
-  help: {
-    description: "shows list of commands and what they do",
-    handler: handleHelpCommand,
-  },
-};
 
 export async function handlePlayCommand(
   message: Message<boolean>
@@ -137,13 +122,17 @@ export async function handleHelpCommand(
   const cmdKeys = Object.keys(commandNameAndHandlerDict);
 
   cmdKeys.sort().forEach((cKey) => {
-    const cmdInfoStr = `${cKey} - ${commandNameAndHandlerDict[cKey]}`;
+    const cmdInfoStr = `${cKey} - ${commandNameAndHandlerDict[cKey].description}`;
     commandListAndDescriptionStrArr.push(cmdInfoStr);
   });
 
   // Finalize help string
   const helpStr = `**List of commands for Panggung Diamond**
-  ${commandListAndDescriptionStrArr.join("\n")}`;
+Commands must be prefixed by "${commandPrefix}" character
+
+${commandListAndDescriptionStrArr.join("\n")}`;
+
+  console.log(helpStr);
 
   try {
     await message.channel.send(helpStr);
@@ -153,3 +142,16 @@ export async function handleHelpCommand(
 
   return null;
 }
+
+// Register command here
+export const commandNameAndHandlerDict: iCmdNameAndInfoObj = {
+  play: {
+    description:
+      "Plays youtube URL separated by a space. Example: !play (youtube_url)",
+    handler: handlePlayCommand,
+  },
+  help: {
+    description: "Shows list of commands and what they do",
+    handler: handleHelpCommand,
+  },
+};
