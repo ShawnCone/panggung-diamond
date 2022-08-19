@@ -4,11 +4,10 @@ import {
   InternalDiscordGatewayAdapterCreator,
   Message,
 } from "discord.js";
-import got from "got/dist/source";
+import ytdl from "ytdl-core";
 import { commandPrefix } from "./configs";
 import { BotClient, MusicPlayer } from "./singletons";
 import { parseMessageCommands } from "./util";
-import { getYoutubeAudioURL } from "./youtube-downloader";
 
 interface iInfoForVoiceChannel {
   guildId: string;
@@ -54,7 +53,7 @@ interface iCmdNameAndInfoObj {
 export async function handlePlayCommand(
   message: Message<boolean>
 ): Promise<Error | null> {
-  // Get audio URL
+  // Get youtube URL
   const { info: commandInfo, error: parseMessageError } = parseMessageCommands(
     message.content
   );
@@ -67,13 +66,6 @@ export async function handlePlayCommand(
     return Error("unable to find URL for video");
 
   const youtubeURL = commandInfo.arguments[URLPositionalArgumentIdx];
-
-  const { audioURL, error: getAudioURLError } = await getYoutubeAudioURL(
-    youtubeURL
-  );
-  if (getAudioURLError) return getAudioURLError;
-
-  const audioStream = got.stream(audioURL);
 
   // Connect to voice chat
   const client = BotClient.client;
@@ -92,6 +84,9 @@ export async function handlePlayCommand(
 
   // Join voice channel and play music
   const player = MusicPlayer.player;
+  player.on("error", (error) => {
+    console.error("player error:", error);
+  });
 
   const connection = joinVoiceChannel({
     channelId: voiceChannelInfo.voiceChannelId,
@@ -99,16 +94,23 @@ export async function handlePlayCommand(
     adapterCreator: voiceChannelInfo.adapterCreator,
   });
 
-  const subscription = connection.subscribe(player); // Connects voice channel with player
+  connection.on("error", (error) => {
+    console.error("connection error:", error);
+  });
 
-  player.play(createAudioResource(audioStream));
+  const subscription = connection.subscribe(player); // Connects voice channel with player
+  const audioResource = ytdl(youtubeURL, { filter: "audioonly" });
+
+  player.play(createAudioResource(audioResource));
+
+  message.channel.send(`**Now Playing**: ${youtubeURL} 🎵`);
 
   // TEMP: STOP PLAYING MUSIC, NO PAUSE OR STOP YET
-  await new Promise((resolve) => setTimeout(resolve, 10000));
-  player.stop();
-  connection.disconnect();
-  connection.destroy();
-  subscription?.unsubscribe();
+  // await new Promise((resolve) => setTimeout(resolve, 20000));
+  // player.stop();
+  // connection.disconnect();
+  // connection.destroy();
+  // subscription?.unsubscribe();
 
   return null;
 }
@@ -131,8 +133,6 @@ export async function handleHelpCommand(
 Commands must be prefixed by "${commandPrefix}" character
 
 ${commandListAndDescriptionStrArr.join("\n")}`;
-
-  console.log(helpStr);
 
   try {
     await message.channel.send(helpStr);
