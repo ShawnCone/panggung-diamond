@@ -7,6 +7,7 @@ import {
 import { commandPrefix } from "./configs";
 import { BotClient } from "./singletons/discord-client";
 import { JukeBox } from "./singletons/jukebox";
+import { YoutubeClient } from "./singletons/youtube-api-client";
 import { parseMessageCommands } from "./util";
 
 interface iInfoForVoiceChannelConnection {
@@ -70,6 +71,16 @@ async function handlePlayCommand(
 
   const youtubeURL = commandInfo.arguments[URLPositionalArgumentIdx];
 
+  // Get URL title
+  const youtubeClient = YoutubeClient.getClient();
+
+  const { title, error: getTitleError } = await youtubeClient.getTitleFromURL(
+    youtubeURL
+  );
+  if (getTitleError !== null) {
+    return Error("unable to get video title");
+  }
+
   // Connect to voice chat if not yet
   const client = BotClient.client;
 
@@ -97,7 +108,13 @@ async function handlePlayCommand(
     return Error("unable to connect to voice channel");
   }
 
-  JukeBox.playGeneric(youtubeURL, message);
+  JukeBox.playGeneric(
+    {
+      title,
+      youtubeURL,
+    },
+    message
+  );
 
   return null;
 }
@@ -119,8 +136,18 @@ async function handleAddNextCommand(
 
   const youtubeURL = commandInfo.arguments[URLPositionalArgumentIdx];
 
-  JukeBox.addToNext(youtubeURL, message);
-  message.channel.send(`**Added to next in queue**: ${youtubeURL}`);
+  // Get youtube URL title
+  const youtubeClient = YoutubeClient.getClient();
+
+  const { title, error: getTitleError } = await youtubeClient.getTitleFromURL(
+    youtubeURL
+  );
+  if (getTitleError) {
+    return Error("unable to get video title");
+  }
+
+  JukeBox.addToNext({ title, youtubeURL }, message);
+  message.channel.send(`**Added to next in queue**: ${title}`);
   return null;
 }
 
@@ -146,13 +173,15 @@ async function handleStatusCommand(
   // Prepare string to send
   const strToSend = `**Current Status**
 
-Now playing: ${nowPlaying || "Nothing is playing"}
+Now playing: ${nowPlaying?.title || "Nothing is playing"}
 
 Queued:
 
 ${
   trackQueue.length > 0
-    ? trackQueue.map((cURL, index) => `${index + 1}.\t${cURL}`).join("\n")
+    ? trackQueue
+        .map((cTrackInfo, index) => `${index + 1}.\t${cTrackInfo.title}`)
+        .join("\n")
     : "Queue is empty"
 }`;
 

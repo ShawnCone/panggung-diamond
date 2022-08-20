@@ -17,6 +17,11 @@ interface iVoiceChannelConnectionInfo {
   guildId: string;
   channelId: string;
 }
+
+interface iTrackInfo {
+  youtubeURL: string;
+  title: string;
+}
 const IDLE_UNTIL_STOPPING_SECONDS = 2 * 60; // Set to 2 minute until stopping
 const MAX_403_RETRIES = 5;
 
@@ -24,8 +29,8 @@ const MAX_403_RETRIES = 5;
 export class JukeBox {
   // Player properties
   private static readonly player: AudioPlayer = JukeBox.getAudioPlayer();
-  private static trackQueue: Array<string> = []; // Array of youtube URL to play in order
-  private static nowPlaying: string = ""; // Current youtube URL playing
+  private static trackQueue: Array<iTrackInfo> = []; // Array of youtube URL to play in order
+  private static nowPlaying: iTrackInfo | null = null; // Current youtube URL playing
   private static currentPlayRetries = 0;
 
   // Jukebox - channel connection
@@ -52,10 +57,11 @@ export class JukeBox {
     player.on("error", (error) => {
       console.error("[AUDIO-PLAYER-ERROR] error:", error);
 
+      if (JukeBox.nowPlaying === null) return;
       // Handle error due to 403
       if (`${error}`.includes("error: AudioPlayerError: Status code: 403")) {
         // Retry playing
-        JukeBox.playURL(this.nowPlaying);
+        JukeBox.playTrack(JukeBox.nowPlaying);
 
         if (JukeBox.currentPlayRetries >= MAX_403_RETRIES) {
           // Resets current play retries
@@ -116,17 +122,20 @@ export class JukeBox {
   }
 
   // Play youtube URL
-  private static playURL(youtubeURL: string) {
+  private static playTrack(trackInfo: iTrackInfo) {
     // Notify now playing
-    JukeBox.nowPlaying = youtubeURL;
+    JukeBox.nowPlaying = trackInfo;
     JukeBox.sendMessageToLastChannel(
-      `🎵🎵🎵 **Now Playing**: ${JukeBox.nowPlaying} 🎵🎵🎵`
+      `🎵 **Now Playing**: ${JukeBox.nowPlaying.title} 🎵🎵`
     );
 
     try {
-      if (!ytdl.validateURL(JukeBox.nowPlaying)) throw "invalid youtube URL";
+      if (!ytdl.validateURL(JukeBox.nowPlaying.youtubeURL))
+        throw "invalid youtube URL";
 
-      const audioResource = ytdl(JukeBox.nowPlaying, { filter: "audioonly" });
+      const audioResource = ytdl(JukeBox.nowPlaying.youtubeURL, {
+        filter: "audioonly",
+      });
       JukeBox.player.play(createAudioResource(audioResource));
     } catch (error) {
       JukeBox.sendMessageToLastChannel(
@@ -146,7 +155,7 @@ export class JukeBox {
     const urlToPlay = JukeBox.trackQueue[0];
     JukeBox.trackQueue = JukeBox.trackQueue.slice(1); // Remove first entry
 
-    JukeBox.playURL(urlToPlay);
+    JukeBox.playTrack(urlToPlay);
   }
 
   // Message sender
@@ -159,26 +168,32 @@ export class JukeBox {
   }
 
   // Add to queue
-  private static addToQueue(youtubeURL: string) {
-    JukeBox.trackQueue.push(youtubeURL);
+  private static addToQueue(trackInfo: iTrackInfo) {
+    JukeBox.trackQueue.push(trackInfo);
     JukeBox.sendMessageToLastChannel(
-      `**Added to queue**: ${youtubeURL} in position **${JukeBox.trackQueue.length}**`
+      `**Added to queue**: "${trackInfo.title}" in position **${JukeBox.trackQueue.length}**`
     );
   }
 
   // Public methods
   // Play generic play command
   static playGeneric(
-    youtubeURL: string,
+    trackInfo: iTrackInfo,
     messageChannelSenderFunc: Message<boolean>
   ) {
     JukeBox.lastMessage = messageChannelSenderFunc;
 
+    // If paused, unpause
+    if (JukeBox.player.state.status === AudioPlayerStatus.Paused) {
+      JukeBox.player.unpause();
+      return;
+    }
+
     // Add to queue
-    JukeBox.addToQueue(youtubeURL);
+    JukeBox.addToQueue(trackInfo);
 
     // If none are currently playing, play next.
-    if (JukeBox.nowPlaying === "") {
+    if (JukeBox.nowPlaying === null) {
       JukeBox.playNext();
       return;
     }
@@ -201,17 +216,17 @@ export class JukeBox {
 
   // Add new youtube URL at the front of queue
   static addToNext(
-    youtubeURL: string,
+    trackInfo: iTrackInfo,
     messageChannelSenderFunc: Message<boolean>
   ) {
     JukeBox.lastMessage = messageChannelSenderFunc;
-    JukeBox.trackQueue = [youtubeURL, ...JukeBox.trackQueue];
+    JukeBox.trackQueue = [trackInfo, ...JukeBox.trackQueue];
   }
 
   // Gets currently playing URL and track queue
   static getStatus(messageChannelSenderFunc: Message<boolean>): {
-    nowPlaying: string;
-    trackQueue: Array<string>;
+    nowPlaying: iTrackInfo | null;
+    trackQueue: Array<iTrackInfo>;
   } {
     JukeBox.lastMessage = messageChannelSenderFunc;
 

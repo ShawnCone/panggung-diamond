@@ -7,7 +7,7 @@ interface iVideosResponse {
   }>;
 }
 
-class YoutubeClient {
+export class YoutubeClient {
   private static API_TOKEN = "AIzaSyCbvz_ACeEKcC73h4K7szS5pvTG02nOLkk";
   private static client: YoutubeClient | null = null;
 
@@ -38,15 +38,15 @@ class YoutubeClient {
   async getTitleFromURL(
     inURL: string
   ): Promise<{ title: string; error: Error | null }> {
-    // Get video ID from URl
-    const { videoID, found } = YoutubeClient.getVideoIDFromURL(inURL);
-
-    if (!found) {
-      return { title: "", error: new Error("video ID not found in URL") };
-    }
-
     // Call API here
     try {
+      // Get video ID from URl
+      const { videoID, found } = YoutubeClient.getVideoIDFromURL(inURL);
+
+      if (!found) {
+        return { title: "", error: new Error("video ID not found in URL") };
+      }
+
       const targetURL = new URL(
         "https://www.googleapis.com/youtube/v3/videos?"
       );
@@ -61,8 +61,6 @@ class YoutubeClient {
       if (retJson.items.length === 0) {
         throw "no videos found!";
       }
-
-      console.log({ content: retJson.items[0] });
 
       return { title: retJson.items[0].snippet.title, error: null };
     } catch (error) {

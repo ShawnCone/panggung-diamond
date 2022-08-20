@@ -54,7 +54,7 @@ client.on("messageCreate", async (message) => {
   const handlerError = await cmdInfo.handler(message);
   if (handlerError !== null) {
     message.channel.send(
-      `error executing ${messageCmdInfo.command}: ${handlerError.message}. type !help to get full list of commands`
+      `**Error executing ${messageCmdInfo.command}**: ${handlerError.message}.\nType !help to get full list of commands`
     );
     return;
   }
