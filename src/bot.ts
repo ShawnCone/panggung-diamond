@@ -1,6 +1,6 @@
 import { NotACommandError, parseMessageCommands } from "./util";
 import { commandNameAndHandlerDict } from "./bot-commands";
-import { BotClient, MusicPlayer } from "./singletons";
+import { BotClient, JukeBox } from "./singletons";
 import { generateDependencyReport } from "@discordjs/voice";
 
 const token =
@@ -9,20 +9,7 @@ const token =
 console.log("Bot is starting...");
 
 // Player singleton initiation
-const player = MusicPlayer.player;
-console.log(generateDependencyReport());
-
-player.on("error", (error) => {
-  console.error("player error:", error);
-});
-
-// player.on("stateChange", (oldState, newState) => {
-//   console.log("State changed:", { oldState, newState });
-// });
-
-player.on("debug", (message) => {
-  console.log("Player debug:", message);
-});
+const player = JukeBox.player;
 
 // Get client ready
 const client = BotClient.client;

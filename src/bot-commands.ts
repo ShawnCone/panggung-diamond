@@ -6,10 +6,10 @@ import {
 } from "discord.js";
 import ytdl from "ytdl-core";
 import { commandPrefix } from "./configs";
-import { BotClient, MusicPlayer } from "./singletons";
+import { BotClient, JukeBox } from "./singletons";
 import { parseMessageCommands } from "./util";
 
-interface iInfoForVoiceChannel {
+interface iInfoForVoiceChannelConnection {
   guildId: string;
   voiceChannelId: string;
   adapterCreator: InternalDiscordGatewayAdapterCreator;
@@ -18,7 +18,10 @@ interface iInfoForVoiceChannel {
 export async function getVoiceChannelInfoFromMessage(
   message: Message<boolean>,
   client: Client
-): Promise<{ info: iInfoForVoiceChannel | null; error: Error | null }> {
+): Promise<{
+  info: iInfoForVoiceChannelConnection | null;
+  error: Error | null;
+}> {
   if (message.guildId === null)
     return { info: null, error: Error("unable to find guild id") };
   const guild = client.guilds.cache.get(message.guildId);
@@ -83,10 +86,7 @@ export async function handlePlayCommand(
   }
 
   // Join voice channel and play music
-  const player = MusicPlayer.player;
-  player.on("error", (error) => {
-    console.error("player error:", error);
-  });
+  const player = JukeBox.player;
 
   const connection = joinVoiceChannel({
     channelId: voiceChannelInfo.voiceChannelId,
