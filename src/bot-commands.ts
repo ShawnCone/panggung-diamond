@@ -66,6 +66,13 @@ async function handlePlayCommand(
 
   if (parseMessageError !== null) return parseMessageError;
 
+  // Try to unpause if no argument
+  if (commandInfo.arguments.length === 0) {
+    JukeBox.unpause(message);
+    message.channel.send("**Unpaused**");
+    return null;
+  }
+
   if (commandInfo.arguments.length < URLPositionalArgumentIdx + 1)
     return Error("unable to find URL for video");
 
@@ -155,6 +162,7 @@ async function handlePauseCommand(
   message: Message<boolean>
 ): Promise<Error | null> {
   JukeBox.pause(message);
+  message.channel.send("**Paused**");
   return null;
 }
 

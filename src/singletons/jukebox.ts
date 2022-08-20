@@ -60,6 +60,7 @@ export class JukeBox {
       if (JukeBox.nowPlaying === null) return;
       // Handle error due to 403
       if (`${error}`.includes("error: AudioPlayerError: Status code: 403")) {
+        console.log("EVER REACHED HERE");
         // Retry playing
         JukeBox.playTrack(JukeBox.nowPlaying);
 
@@ -177,17 +178,8 @@ export class JukeBox {
 
   // Public methods
   // Play generic play command
-  static playGeneric(
-    trackInfo: iTrackInfo,
-    messageChannelSenderFunc: Message<boolean>
-  ) {
-    JukeBox.lastMessage = messageChannelSenderFunc;
-
-    // If paused, unpause
-    if (JukeBox.player.state.status === AudioPlayerStatus.Paused) {
-      JukeBox.player.unpause();
-      return;
-    }
+  static playGeneric(trackInfo: iTrackInfo, message: Message<boolean>) {
+    JukeBox.lastMessage = message;
 
     // Add to queue
     JukeBox.addToQueue(trackInfo);
@@ -200,13 +192,13 @@ export class JukeBox {
   }
 
   // Exposed methods to be used from outside world
-  static publicPlayNext(messageChannelSenderFunc: Message<boolean>) {
-    JukeBox.lastMessage = messageChannelSenderFunc; // TODO: could possibly use decorator pattern for exposed methods
+  static publicPlayNext(message: Message<boolean>) {
+    JukeBox.lastMessage = message; // TODO: could possibly use decorator pattern for exposed methods
     JukeBox.playNext();
   }
 
-  static pause(messageChannelSenderFunc: Message<boolean>) {
-    JukeBox.lastMessage = messageChannelSenderFunc;
+  static pause(message: Message<boolean>) {
+    JukeBox.lastMessage = message;
     const canPause = JukeBox.player.pause();
 
     if (!canPause) {
@@ -214,21 +206,27 @@ export class JukeBox {
     }
   }
 
+  static unpause(message: Message<boolean>) {
+    JukeBox.lastMessage = message;
+    // If paused, unpause
+    if (JukeBox.player.state.status === AudioPlayerStatus.Paused) {
+      JukeBox.player.unpause();
+      return;
+    }
+  }
+
   // Add new youtube URL at the front of queue
-  static addToNext(
-    trackInfo: iTrackInfo,
-    messageChannelSenderFunc: Message<boolean>
-  ) {
-    JukeBox.lastMessage = messageChannelSenderFunc;
+  static addToNext(trackInfo: iTrackInfo, message: Message<boolean>) {
+    JukeBox.lastMessage = message;
     JukeBox.trackQueue = [trackInfo, ...JukeBox.trackQueue];
   }
 
   // Gets currently playing URL and track queue
-  static getStatus(messageChannelSenderFunc: Message<boolean>): {
+  static getStatus(message: Message<boolean>): {
     nowPlaying: iTrackInfo | null;
     trackQueue: Array<iTrackInfo>;
   } {
-    JukeBox.lastMessage = messageChannelSenderFunc;
+    JukeBox.lastMessage = message;
 
     return {
       nowPlaying: JukeBox.nowPlaying,
@@ -241,9 +239,9 @@ export class JukeBox {
     newChannelId: string,
     newGuildId: string,
     newAdapterCreator: InternalDiscordGatewayAdapterCreator,
-    messageChannelSenderFunc: Message<boolean>
+    message: Message<boolean>
   ): Error | null {
-    JukeBox.lastMessage = messageChannelSenderFunc;
+    JukeBox.lastMessage = message;
 
     if (JukeBox.voiceChannelConnection !== null) {
       const { channelId: currentChannelId, guildId: currentGuildId } =
