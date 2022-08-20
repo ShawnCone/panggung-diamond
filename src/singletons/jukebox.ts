@@ -8,30 +8,8 @@ import {
   VoiceConnection,
   VoiceConnectionStatus,
 } from "@discordjs/voice";
-import {
-  Client,
-  GatewayIntentBits,
-  InternalDiscordGatewayAdapterCreator,
-  Message,
-} from "discord.js";
+import { InternalDiscordGatewayAdapterCreator, Message } from "discord.js";
 import ytdl from "ytdl-core";
-
-// Client singleton
-export class BotClient {
-  static readonly client: Client = BotClient.getDiscordClient();
-
-  private static getDiscordClient() {
-    console.log("Getting discord client");
-    return new Client({
-      intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildVoiceStates,
-      ],
-    });
-  }
-}
 
 interface iVoiceChannelConnectionInfo {
   connection: VoiceConnection;

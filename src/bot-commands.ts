@@ -1,13 +1,12 @@
-import { createAudioResource, joinVoiceChannel } from "@discordjs/voice";
 import {
   Client,
   InternalDiscordGatewayAdapterCreator,
   Message,
   MessageFlags,
 } from "discord.js";
-import ytdl from "ytdl-core";
 import { commandPrefix } from "./configs";
-import { BotClient, JukeBox } from "./singletons";
+import { BotClient } from "./singletons/discord-client";
+import { JukeBox } from "./singletons/jukebox";
 import { parseMessageCommands } from "./util";
 
 interface iInfoForVoiceChannelConnection {

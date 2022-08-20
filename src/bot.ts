@@ -1,6 +1,6 @@
-import { NotACommandError, parseMessageCommands } from "./util";
 import { commandNameAndHandlerDict } from "./bot-commands";
-import { BotClient } from "./singletons";
+import { BotClient } from "./singletons/discord-client";
+import { NotACommandError, parseMessageCommands } from "./util";
 
 const token =
   "MTAwOTYwNzUyODQxOTY5MjYxNQ.GeIt8A.cZhzK2IhjhNEhjSRzp-fBvEp1zy7Nc3GAzgNuA"; // add your token here
