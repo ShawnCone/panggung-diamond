@@ -1,15 +1,11 @@
 import { NotACommandError, parseMessageCommands } from "./util";
 import { commandNameAndHandlerDict } from "./bot-commands";
-import { BotClient, JukeBox } from "./singletons";
-import { generateDependencyReport } from "@discordjs/voice";
+import { BotClient } from "./singletons";
 
 const token =
   "MTAwOTYwNzUyODQxOTY5MjYxNQ.GeIt8A.cZhzK2IhjhNEhjSRzp-fBvEp1zy7Nc3GAzgNuA"; // add your token here
 
 console.log("Bot is starting...");
-
-// Player singleton initiation
-const player = JukeBox.player;
 
 // Get client ready
 const client = BotClient.client;

@@ -15,7 +15,7 @@ interface iInfoForVoiceChannelConnection {
   adapterCreator: InternalDiscordGatewayAdapterCreator;
 }
 
-export async function getVoiceChannelInfoFromMessage(
+async function getVoiceChannelInfoFromMessage(
   message: Message<boolean>,
   client: Client
 ): Promise<{
@@ -53,7 +53,7 @@ interface iCmdNameAndInfoObj {
   };
 }
 
-export async function handlePlayCommand(
+async function handlePlayCommand(
   message: Message<boolean>
 ): Promise<Error | null> {
   // Get youtube URL
@@ -85,37 +85,61 @@ export async function handlePlayCommand(
     return Error("unable to get necessary message data to play music");
   }
 
-  // Join voice channel and play music
-  const player = JukeBox.player;
+  // Set voice channel connection
+  const addConnectionError = JukeBox.addVoiceChannelConnection(
+    voiceChannelInfo.voiceChannelId,
+    voiceChannelInfo.guildId,
+    voiceChannelInfo.adapterCreator,
+    message.channel.send
+  );
 
-  const connection = joinVoiceChannel({
-    channelId: voiceChannelInfo.voiceChannelId,
-    guildId: voiceChannelInfo.guildId,
-    adapterCreator: voiceChannelInfo.adapterCreator,
-  });
+  if (addConnectionError !== null) {
+    return Error("unable to connect to voice channel");
+  }
 
-  connection.on("error", (error) => {
-    console.error("connection error:", error);
-  });
-
-  const subscription = connection.subscribe(player); // Connects voice channel with player
-  const audioResource = ytdl(youtubeURL, { filter: "audioonly" });
-
-  player.play(createAudioResource(audioResource));
-
-  message.channel.send(`**Now Playing**: ${youtubeURL} 🎵`);
-
-  // TEMP: STOP PLAYING MUSIC, NO PAUSE OR STOP YET
-  // await new Promise((resolve) => setTimeout(resolve, 20000));
-  // player.stop();
-  // connection.disconnect();
-  // connection.destroy();
-  // subscription?.unsubscribe();
+  JukeBox.playGeneric(youtubeURL, message.channel.send);
 
   return null;
 }
 
-export async function handleHelpCommand(
+async function handlePauseCommand(
+  message: Message<boolean>
+): Promise<Error | null> {
+  JukeBox.pause(message.channel.send);
+  return null;
+}
+
+async function handleNextCommand(
+  message: Message<boolean>
+): Promise<Error | null> {
+  JukeBox.publicPlayNext(message.channel.send);
+  return null;
+}
+
+async function handleStatusCommand(
+  message: Message<boolean>
+): Promise<Error | null> {
+  const { nowPlaying, trackQueue } = JukeBox.getStatus(message.channel.send);
+
+  // Prepare string to send
+  const strToSend = `**Current Status**
+
+Now playing: ${nowPlaying || "Nothing is playing"}
+
+Queued:
+
+${
+  trackQueue.length > 0
+    ? trackQueue.map((cURL, index) => `${index + 1}. ${cURL}`).join("\n")
+    : "Queue is empty"
+}`;
+
+  message.channel.send(strToSend);
+
+  return null;
+}
+
+async function handleHelpCommand(
   message: Message<boolean>
 ): Promise<Error | null> {
   // Generate string to be sent
@@ -149,6 +173,20 @@ export const commandNameAndHandlerDict: iCmdNameAndInfoObj = {
     description:
       "Plays youtube URL separated by a space. Example: !play (youtube_url)",
     handler: handlePlayCommand,
+  },
+  pause: {
+    description: "Pauses currently playing track",
+    handler: handlePauseCommand,
+  },
+
+  next: {
+    description: "Skips current track and plays the next track",
+    handler: handleNextCommand,
+  },
+
+  status: {
+    description: "Gets current track information",
+    handler: handleStatusCommand,
   },
   help: {
     description: "Shows list of commands and what they do",
