@@ -1,9 +1,10 @@
-import { commandNameAndHandlerDict } from "./bot-commands";
-import { BotClient } from "./singletons/discord-client";
-import { NotACommandError, parseMessageCommands } from "./util";
+import * as dotenv from "dotenv";
+import { commandNameAndHandlerDict } from "./src/bot-commands";
+import { BotClient } from "./src/singletons/discord-client";
+import { NotACommandError, parseMessageCommands } from "./src/util";
 
-const token =
-  "MTAwOTYwNzUyODQxOTY5MjYxNQ.GeIt8A.cZhzK2IhjhNEhjSRzp-fBvEp1zy7Nc3GAzgNuA"; // add your token here
+// set up configs
+dotenv.config({ path: __dirname + "/.env" });
 
 console.log("Bot is starting...");
 
@@ -60,4 +61,4 @@ client.on("messageCreate", async (message) => {
   }
 });
 
-client.login(token);
+client.login(process.env.DISCORD_CLIENT_TOKEN);

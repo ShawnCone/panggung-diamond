@@ -8,12 +8,13 @@ interface iVideosResponse {
 }
 
 export class YoutubeClient {
-  private static API_TOKEN = "AIzaSyCbvz_ACeEKcC73h4K7szS5pvTG02nOLkk";
+  private static API_TOKEN: string;
   private static client: YoutubeClient | null = null;
 
   private constructor() {}
 
   static getClient() {
+    YoutubeClient.API_TOKEN = process.env.YOUTUBE_API_TOKEN as string;
     if (YoutubeClient.client === null) {
       YoutubeClient.client = new YoutubeClient();
     }
@@ -54,6 +55,7 @@ export class YoutubeClient {
       targetURL.searchParams.set("key", YoutubeClient.API_TOKEN);
       targetURL.searchParams.set("id", videoID);
 
+      console.log(targetURL.href);
       const response = await fetch(targetURL.href);
 
       const retJson = (await response.json()) as iVideosResponse;
