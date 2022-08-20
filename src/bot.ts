@@ -43,7 +43,7 @@ client.on("messageCreate", async (message) => {
   // Check whether command is supported
   if (!(messageCmdInfo.command in commandNameAndHandlerDict)) {
     message.channel.send(
-      `${messageCmdInfo.command} is not a valid command, type !help to get a full list of commands`
+      `"${messageCmdInfo.command}" is not a valid command, type !help to get a full list of commands`
     );
     return;
   }

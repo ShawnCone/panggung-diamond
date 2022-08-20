@@ -3,6 +3,7 @@ import {
   Client,
   InternalDiscordGatewayAdapterCreator,
   Message,
+  MessageFlags,
 } from "discord.js";
 import ytdl from "ytdl-core";
 import { commandPrefix } from "./configs";
@@ -156,7 +157,10 @@ ${
     : "Queue is empty"
 }`;
 
-  message.channel.send(strToSend);
+  message.channel.send({
+    content: strToSend,
+    flags: MessageFlags.SuppressEmbeds,
+  });
 
   return null;
 }

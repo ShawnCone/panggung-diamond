@@ -142,7 +142,7 @@ export class JukeBox {
     // Notify now playing
     JukeBox.nowPlaying = youtubeURL;
     JukeBox.sendMessageToLastChannel(
-      `**Now Playing**: ${JukeBox.nowPlaying} 🎵`
+      `🎵🎵🎵 **Now Playing**: ${JukeBox.nowPlaying} 🎵🎵🎵`
     );
 
     try {
