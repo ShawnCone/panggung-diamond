@@ -42,10 +42,6 @@ interface iVoiceChannelConnectionInfo {
   channelId: string;
 }
 
-type messageChannelSenderFuncType = (
-  options: string | MessagePayload | MessageOptions
-) => Promise<Message<boolean>>;
-
 // Music player singleton
 export class JukeBox {
   // Player properties
@@ -58,8 +54,8 @@ export class JukeBox {
     null;
   private static IDLE_UNTIL_STOPPING_SECONDS = 2 * 60; // Set to 2 minute until stopping
   private static idleTimer: NodeJS.Timeout | null = null;
-  private static lastMessageChannelSenderFunc: // channel.send function for where last message was received
-  messageChannelSenderFuncType | null = null;
+  private static lastMessage: // last message instance
+  Message<boolean> | null = null;
 
   // Sending message regarding errors should be done in the inner most functions.
 
@@ -80,11 +76,6 @@ export class JukeBox {
     });
 
     player.addListener(AudioPlayerStatus.Playing, () => {
-      // Send message
-      JukeBox.sendMessageToLastChannel(
-        `**Now Playing**: ${JukeBox.nowPlaying} 🎵`
-      );
-
       // Clear idle timer if starting to play
       if (JukeBox.idleTimer === null) return;
 
@@ -127,20 +118,20 @@ export class JukeBox {
   }
 
   // Play youtube URL
-  private static async playURL(youtubeURL: string) {
-    const audioResource = ytdl(youtubeURL, { filter: "audioonly" });
-
+  private static playURL(youtubeURL: string) {
     // Notify now playing
-    JukeBox.sendMessageToLastChannel;
+    JukeBox.sendMessageToLastChannel(`**Now Playing**: ${youtubeURL} 🎵`);
 
     JukeBox.nowPlaying = youtubeURL;
 
-    console.log("AUDIO RESOURCE", audioResource);
-
     try {
+      const audioResource = ytdl(youtubeURL, { filter: "audioonly" });
       JukeBox.player.play(createAudioResource(audioResource));
     } catch (error) {
-      JukeBox.sendMessageToLastChannel(`${error}`);
+      JukeBox.sendMessageToLastChannel(
+        `Error playing current track: ${youtubeURL}, skipping...`
+      );
+      JukeBox.playNext();
     }
   }
 
@@ -159,11 +150,16 @@ export class JukeBox {
 
   // Message sender
   private static sendMessageToLastChannel(message: string) {
-    if (JukeBox.lastMessageChannelSenderFunc === null) return; // Can't send message
+    if (JukeBox.lastMessage === null) return; // Can't send message
 
-    JukeBox.lastMessageChannelSenderFunc(message).catch((error) => {
-      console.error("error sending message to channel:", error);
-    }); // Send message
+    JukeBox.lastMessage.channel
+      .send(message)
+      .catch((error) => {
+        console.error("error sending message to channel:", error);
+      })
+      .then((messageSentOk) => {
+        console.log({ messageSentOk });
+      }); // Send message
   }
 
   // Add to queue
@@ -175,9 +171,9 @@ export class JukeBox {
   // Play generic play command
   static playGeneric(
     youtubeURL: string,
-    messageChannelSenderFunc: messageChannelSenderFuncType
+    messageChannelSenderFunc: Message<boolean>
   ) {
-    JukeBox.lastMessageChannelSenderFunc = messageChannelSenderFunc;
+    JukeBox.lastMessage = messageChannelSenderFunc;
 
     // Add to queue
     JukeBox.addToQueue(youtubeURL);
@@ -190,15 +186,13 @@ export class JukeBox {
   }
 
   // Exposed methods to be used from outside world
-  static publicPlayNext(
-    messageChannelSenderFunc: messageChannelSenderFuncType
-  ) {
-    JukeBox.lastMessageChannelSenderFunc = messageChannelSenderFunc; // TODO: could possibly use decorator pattern for exposed methods
+  static publicPlayNext(messageChannelSenderFunc: Message<boolean>) {
+    JukeBox.lastMessage = messageChannelSenderFunc; // TODO: could possibly use decorator pattern for exposed methods
     JukeBox.playNext();
   }
 
-  static pause(messageChannelSenderFunc: messageChannelSenderFuncType) {
-    JukeBox.lastMessageChannelSenderFunc = messageChannelSenderFunc;
+  static pause(messageChannelSenderFunc: Message<boolean>) {
+    JukeBox.lastMessage = messageChannelSenderFunc;
     const canPause = JukeBox.player.pause();
 
     if (!canPause) {
@@ -209,18 +203,18 @@ export class JukeBox {
   // Add new youtube URL at the front of queue
   static addToNext(
     youtubeURL: string,
-    messageChannelSenderFunc: messageChannelSenderFuncType
+    messageChannelSenderFunc: Message<boolean>
   ) {
-    JukeBox.lastMessageChannelSenderFunc = messageChannelSenderFunc;
+    JukeBox.lastMessage = messageChannelSenderFunc;
     JukeBox.trackQueue = [youtubeURL, ...JukeBox.trackQueue];
   }
 
   // Gets currently playing URL and track queue
-  static getStatus(messageChannelSenderFunc: messageChannelSenderFuncType): {
+  static getStatus(messageChannelSenderFunc: Message<boolean>): {
     nowPlaying: string;
     trackQueue: Array<string>;
   } {
-    JukeBox.lastMessageChannelSenderFunc = messageChannelSenderFunc;
+    JukeBox.lastMessage = messageChannelSenderFunc;
 
     return {
       nowPlaying: JukeBox.nowPlaying,
@@ -233,9 +227,9 @@ export class JukeBox {
     newChannelId: string,
     newGuildId: string,
     newAdapterCreator: InternalDiscordGatewayAdapterCreator,
-    messageChannelSenderFunc: messageChannelSenderFuncType
+    messageChannelSenderFunc: Message<boolean>
   ): Error | null {
-    JukeBox.lastMessageChannelSenderFunc = messageChannelSenderFunc;
+    JukeBox.lastMessage = messageChannelSenderFunc;
 
     if (JukeBox.voiceChannelConnection !== null) {
       const { channelId: currentChannelId, guildId: currentGuildId } =

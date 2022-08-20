@@ -90,14 +90,14 @@ async function handlePlayCommand(
     voiceChannelInfo.voiceChannelId,
     voiceChannelInfo.guildId,
     voiceChannelInfo.adapterCreator,
-    message.channel.send
+    message
   );
 
   if (addConnectionError !== null) {
     return Error("unable to connect to voice channel");
   }
 
-  JukeBox.playGeneric(youtubeURL, message.channel.send);
+  JukeBox.playGeneric(youtubeURL, message);
 
   return null;
 }
@@ -105,21 +105,21 @@ async function handlePlayCommand(
 async function handlePauseCommand(
   message: Message<boolean>
 ): Promise<Error | null> {
-  JukeBox.pause(message.channel.send);
+  JukeBox.pause(message);
   return null;
 }
 
 async function handleNextCommand(
   message: Message<boolean>
 ): Promise<Error | null> {
-  JukeBox.publicPlayNext(message.channel.send);
+  JukeBox.publicPlayNext(message);
   return null;
 }
 
 async function handleStatusCommand(
   message: Message<boolean>
 ): Promise<Error | null> {
-  const { nowPlaying, trackQueue } = JukeBox.getStatus(message.channel.send);
+  const { nowPlaying, trackQueue } = JukeBox.getStatus(message);
 
   // Prepare string to send
   const strToSend = `**Current Status**
