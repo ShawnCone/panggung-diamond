@@ -13,8 +13,6 @@ import {
   GatewayIntentBits,
   InternalDiscordGatewayAdapterCreator,
   Message,
-  MessagePayload,
-  MessageOptions,
 } from "discord.js";
 import ytdl from "ytdl-core";
 
@@ -41,6 +39,8 @@ interface iVoiceChannelConnectionInfo {
   guildId: string;
   channelId: string;
 }
+const IDLE_UNTIL_STOPPING_SECONDS = 2 * 60; // Set to 2 minute until stopping
+const MAX_403_RETRIES = 5;
 
 // Music player singleton
 export class JukeBox {
@@ -48,11 +48,11 @@ export class JukeBox {
   private static readonly player: AudioPlayer = JukeBox.getAudioPlayer();
   private static trackQueue: Array<string> = []; // Array of youtube URL to play in order
   private static nowPlaying: string = ""; // Current youtube URL playing
+  private static currentPlayRetries = 0;
 
   // Jukebox - channel connection
   private static voiceChannelConnection: iVoiceChannelConnectionInfo | null =
     null;
-  private static IDLE_UNTIL_STOPPING_SECONDS = 2 * 60; // Set to 2 minute until stopping
   private static idleTimer: NodeJS.Timeout | null = null;
   private static lastMessage: // last message instance
   Message<boolean> | null = null;
@@ -68,14 +68,34 @@ export class JukeBox {
       throw "unable to initiate music player bot";
 
     player.on("debug", (message) => {
-      console.log(`[AUDIO-PLAYER-INFO]: ${message}`);
+      // console.log(`[AUDIO-PLAYER-DEBUG]: ${message}`);
     });
 
     player.on("error", (error) => {
       console.error("[AUDIO-PLAYER-ERROR] error:", error);
+
+      // Handle error due to 403
+      if (`${error}`.includes("error: AudioPlayerError: Status code: 403")) {
+        // Retry playing
+        JukeBox.playURL(this.nowPlaying);
+
+        if (JukeBox.currentPlayRetries >= MAX_403_RETRIES) {
+          // Resets current play retries
+          JukeBox.currentPlayRetries = 0;
+
+          // Play next if exceeds retries
+          JukeBox.playNext();
+          return;
+        }
+
+        JukeBox.currentPlayRetries++; // Increment currentPlayRetries
+      }
     });
 
     player.addListener(AudioPlayerStatus.Playing, () => {
+      // Resets current play retries
+      JukeBox.currentPlayRetries = 0;
+
       // Clear idle timer if starting to play
       if (JukeBox.idleTimer === null) return;
 
@@ -93,7 +113,7 @@ export class JukeBox {
       // Set timeout, if idle for a certain period of time:
       JukeBox.idleTimer = setTimeout(
         JukeBox.completelyStop,
-        JukeBox.IDLE_UNTIL_STOPPING_SECONDS * 1000
+        IDLE_UNTIL_STOPPING_SECONDS * 1000
       );
     });
 
@@ -120,16 +140,19 @@ export class JukeBox {
   // Play youtube URL
   private static playURL(youtubeURL: string) {
     // Notify now playing
-    JukeBox.sendMessageToLastChannel(`**Now Playing**: ${youtubeURL} 🎵`);
-
     JukeBox.nowPlaying = youtubeURL;
+    JukeBox.sendMessageToLastChannel(
+      `**Now Playing**: ${JukeBox.nowPlaying} 🎵`
+    );
 
     try {
-      const audioResource = ytdl(youtubeURL, { filter: "audioonly" });
+      if (!ytdl.validateURL(JukeBox.nowPlaying)) throw "invalid youtube URL";
+
+      const audioResource = ytdl(JukeBox.nowPlaying, { filter: "audioonly" });
       JukeBox.player.play(createAudioResource(audioResource));
     } catch (error) {
       JukeBox.sendMessageToLastChannel(
-        `Error playing current track: ${youtubeURL}, skipping...`
+        `**Error playing current track**: ${JukeBox.nowPlaying}, skipping...`
       );
       JukeBox.playNext();
     }
@@ -138,7 +161,7 @@ export class JukeBox {
   // Play first in the queue, only for within-class use
   private static playNext() {
     if (this.trackQueue.length === 0) {
-      JukeBox.sendMessageToLastChannel("end of queue reached");
+      JukeBox.sendMessageToLastChannel("**End of queue reached**");
       return;
     }
 
@@ -152,19 +175,17 @@ export class JukeBox {
   private static sendMessageToLastChannel(message: string) {
     if (JukeBox.lastMessage === null) return; // Can't send message
 
-    JukeBox.lastMessage.channel
-      .send(message)
-      .catch((error) => {
-        console.error("error sending message to channel:", error);
-      })
-      .then((messageSentOk) => {
-        console.log({ messageSentOk });
-      }); // Send message
+    JukeBox.lastMessage.channel.send(message).catch((error) => {
+      console.error("error sending message to channel:", error);
+    });
   }
 
   // Add to queue
   private static addToQueue(youtubeURL: string) {
     JukeBox.trackQueue.push(youtubeURL);
+    JukeBox.sendMessageToLastChannel(
+      `**Added to queue**: ${youtubeURL} in position **${JukeBox.trackQueue.length}**`
+    );
   }
 
   // Public methods

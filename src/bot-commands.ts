@@ -70,7 +70,7 @@ async function handlePlayCommand(
 
   const youtubeURL = commandInfo.arguments[URLPositionalArgumentIdx];
 
-  // Connect to voice chat
+  // Connect to voice chat if not yet
   const client = BotClient.client;
 
   // Parse message to get necessary info for voice channel
@@ -102,6 +102,28 @@ async function handlePlayCommand(
   return null;
 }
 
+async function handleAddNextCommand(
+  message: Message<boolean>
+): Promise<Error | null> {
+  // Get youtube URL
+  const { info: commandInfo, error: parseMessageError } = parseMessageCommands(
+    message.content
+  );
+
+  const URLPositionalArgumentIdx = 0;
+
+  if (parseMessageError !== null) return parseMessageError;
+
+  if (commandInfo.arguments.length < URLPositionalArgumentIdx + 1)
+    return Error("unable to find URL for video");
+
+  const youtubeURL = commandInfo.arguments[URLPositionalArgumentIdx];
+
+  JukeBox.addToNext(youtubeURL, message);
+  message.channel.send(`**Added to next in queue**: ${youtubeURL}`);
+  return null;
+}
+
 async function handlePauseCommand(
   message: Message<boolean>
 ): Promise<Error | null> {
@@ -130,7 +152,7 @@ Queued:
 
 ${
   trackQueue.length > 0
-    ? trackQueue.map((cURL, index) => `${index + 1}. ${cURL}`).join("\n")
+    ? trackQueue.map((cURL, index) => `${index + 1}.\t${cURL}`).join("\n")
     : "Queue is empty"
 }`;
 
@@ -173,6 +195,10 @@ export const commandNameAndHandlerDict: iCmdNameAndInfoObj = {
     description:
       "Plays youtube URL separated by a space. Example: !play (youtube_url)",
     handler: handlePlayCommand,
+  },
+  addNext: {
+    description: "Adds youtube URL to the next line in queue",
+    handler: handleAddNextCommand,
   },
   pause: {
     description: "Pauses currently playing track",
