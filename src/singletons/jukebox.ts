@@ -127,7 +127,7 @@ export class JukeBox {
     // Notify now playing
     JukeBox.nowPlaying = trackInfo;
     JukeBox.sendMessageToLastChannel(
-      `🎵 **Now Playing**: ${JukeBox.nowPlaying.title} 🎵🎵`
+      `🎵 **Now Playing**: ${JukeBox.nowPlaying.title} 🎵`
     );
 
     try {

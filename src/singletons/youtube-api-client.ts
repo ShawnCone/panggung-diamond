@@ -55,7 +55,6 @@ export class YoutubeClient {
       targetURL.searchParams.set("key", YoutubeClient.API_TOKEN);
       targetURL.searchParams.set("id", videoID);
 
-      console.log(targetURL.href);
       const response = await fetch(targetURL.href);
 
       const retJson = (await response.json()) as iVideosResponse;
