@@ -54,19 +54,27 @@ export class JukeBox {
       // console.log(`[AUDIO-PLAYER-DEBUG]: ${message}`);
     });
 
-    player.on("error", (error) => {
+    player.on("error", async (error) => {
       console.error("[AUDIO-PLAYER-ERROR] error:", error);
 
       if (JukeBox.nowPlaying === null) return;
       // Handle error due to 403
-      if (`${error}`.includes("error: AudioPlayerError: Status code: 403")) {
-        console.log("EVER REACHED HERE");
+      if (error.message.includes("code: 403")) {
+        JukeBox.sendMessageToLastChannel(
+          "Aduh, salah chord, ulang yaa, 1.. 2.. 3.."
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, 2000)); // delay 2 seconds
         // Retry playing
         JukeBox.playTrack(JukeBox.nowPlaying);
 
         if (JukeBox.currentPlayRetries >= MAX_403_RETRIES) {
           // Resets current play retries
           JukeBox.currentPlayRetries = 0;
+
+          JukeBox.sendMessageToLastChannel(
+            "Maaf, nggak bisa dimainin lagunya keyboardnya error, lanjut dulu ya..."
+          );
 
           // Play next if exceeds retries
           JukeBox.playNext();
@@ -105,14 +113,13 @@ export class JukeBox {
     return player;
   }
 
-  private static completelyStop() {
+  static completelyStop() {
     // 1. Stop player
     JukeBox.player.stop();
 
-    // 2. Connection disconnect and destroy
+    // 2. Connection estroy
     if (JukeBox.voiceChannelConnection === null) return;
 
-    JukeBox.voiceChannelConnection.connection.disconnect();
     JukeBox.voiceChannelConnection.connection.destroy();
 
     // 3. Subscription unsubscribe
@@ -127,7 +134,7 @@ export class JukeBox {
     // Notify now playing
     JukeBox.nowPlaying = trackInfo;
     JukeBox.sendMessageToLastChannel(
-      `🎵 **Now Playing**: ${JukeBox.nowPlaying.title} 🎵`
+      `🎵 **Mohon dinikmati**: ${JukeBox.nowPlaying.title} 🎵`
     );
 
     try {
@@ -140,7 +147,7 @@ export class JukeBox {
       JukeBox.player.play(createAudioResource(audioResource));
     } catch (error) {
       JukeBox.sendMessageToLastChannel(
-        `**Error playing current track**: ${JukeBox.nowPlaying}, skipping...`
+        `**Wah maaf, belom bisa lagu yang ini**: ${JukeBox.nowPlaying}, lanjut ya...`
       );
       JukeBox.playNext();
     }
@@ -149,7 +156,9 @@ export class JukeBox {
   // Play first in the queue, only for within-class use
   private static playNext() {
     if (this.trackQueue.length === 0) {
-      JukeBox.sendMessageToLastChannel("**End of queue reached**");
+      JukeBox.sendMessageToLastChannel(
+        "**Sudah habis antrian lagunya, mohon silahkan request lagi...**"
+      );
       return;
     }
 
@@ -172,7 +181,7 @@ export class JukeBox {
   private static addToQueue(trackInfo: iTrackInfo) {
     JukeBox.trackQueue.push(trackInfo);
     JukeBox.sendMessageToLastChannel(
-      `**Added to queue**: "${trackInfo.title}" in position **${JukeBox.trackQueue.length}**`
+      `**Request lagunya**: "${trackInfo.title}" sudah diterima ya, nanti dimainin. (Posisi **${JukeBox.trackQueue.length}**)`
     );
   }
 
@@ -202,7 +211,9 @@ export class JukeBox {
     const canPause = JukeBox.player.pause();
 
     if (!canPause) {
-      JukeBox.sendMessageToLastChannel("unable to pause");
+      JukeBox.sendMessageToLastChannel(
+        "Waduh lagi asik joget, nggak bisa berhenti"
+      );
     }
   }
 

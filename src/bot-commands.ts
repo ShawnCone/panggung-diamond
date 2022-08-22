@@ -69,7 +69,7 @@ async function handlePlayCommand(
   // Try to unpause if no argument
   if (commandInfo.arguments.length === 0) {
     JukeBox.unpause(message);
-    message.channel.send("**Unpaused**");
+    message.channel.send("**Lanjut yook**");
     return null;
   }
 
@@ -154,7 +154,9 @@ async function handleAddNextCommand(
   }
 
   JukeBox.addToNext({ title, youtubeURL }, message);
-  message.channel.send(`**Added to next in queue**: ${title}`);
+  message.channel.send(
+    `**Sudah masuk ya request lagunya buat habis ini**: ${title}`
+  );
   return null;
 }
 
@@ -162,7 +164,7 @@ async function handlePauseCommand(
   message: Message<boolean>
 ): Promise<Error | null> {
   JukeBox.pause(message);
-  message.channel.send("**Paused**");
+  message.channel.send("**Bentar, rehat dulu**");
   return null;
 }
 
@@ -179,18 +181,18 @@ async function handleStatusCommand(
   const { nowPlaying, trackQueue } = JukeBox.getStatus(message);
 
   // Prepare string to send
-  const strToSend = `**Current Status**
+  const strToSend = `**Status Panggung Diamond**
 
-Now playing: ${nowPlaying?.title || "Nothing is playing"}
+Lagu yang lagi main: ${nowPlaying?.title || "Lagi istirahat"}
 
-Queued:
+Antrian lagu:
 
 ${
   trackQueue.length > 0
     ? trackQueue
         .map((cTrackInfo, index) => `${index + 1}.\t${cTrackInfo.title}`)
         .join("\n")
-    : "Queue is empty"
+    : "**Antrian kosong**"
 }`;
 
   message.channel.send({
@@ -229,6 +231,16 @@ ${commandListAndDescriptionStrArr.join("\n")}`;
   return null;
 }
 
+async function handleKickCommand(
+  message: Message<boolean>
+): Promise<Error | null> {
+  JukeBox.completelyStop();
+
+  message.channel.send("Makasih om tante, silahkan dinikmati makanannya...");
+
+  return null;
+}
+
 // Register command here
 export const commandNameAndHandlerDict: iCmdNameAndInfoObj = {
   play: {
@@ -257,5 +269,9 @@ export const commandNameAndHandlerDict: iCmdNameAndInfoObj = {
   help: {
     description: "Shows list of commands and what they do",
     handler: handleHelpCommand,
+  },
+  kick: {
+    description: "Remove bot from channel and stop player",
+    handler: handleKickCommand,
   },
 };
