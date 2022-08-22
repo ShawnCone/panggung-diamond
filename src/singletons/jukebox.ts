@@ -9,6 +9,8 @@ import {
   VoiceConnectionStatus,
 } from "@discordjs/voice";
 import { InternalDiscordGatewayAdapterCreator, Message } from "discord.js";
+import getArtistTitle from "get-artist-title";
+import lyricsSearcher from "lyrics-searcher";
 import ytdl from "ytdl-core";
 
 interface iVoiceChannelConnectionInfo {
@@ -300,5 +302,40 @@ export class JukeBox {
 
     JukeBox.voiceChannelConnection = voiceChannelConnectionInfo;
     return null;
+  }
+
+  // Get lyrics for current track
+  static async getCurrentTrackLyrics(message: Message<boolean>): Promise<{
+    lyrics: string;
+    error: Error | null;
+  }> {
+    JukeBox.lastMessage = message;
+
+    // Return immediately if nothing is playing
+    if (JukeBox.nowPlaying === null)
+      return { lyrics: "", error: Error("nothing is playing") };
+
+    // Get artist and title from youtube title
+    const artistTitleArr = getArtistTitle(JukeBox.nowPlaying.title);
+    if (typeof artistTitleArr === "undefined")
+      return {
+        lyrics: "",
+        error: Error("cannot parse song title from youtube title"),
+      };
+
+    const songTitle = artistTitleArr[1];
+    const songArtist = artistTitleArr[0];
+
+    // Get lyrics
+    try {
+      const lyrics = (await lyricsSearcher(songArtist, songTitle)) as string;
+
+      if (lyrics.length === 0) throw "lyrics not found";
+
+      return { lyrics, error: null };
+    } catch (error) {
+      console.error("Cannot get lyrics:", error);
+      return { lyrics: "", error: Error("lyrics not found") };
+    }
   }
 }

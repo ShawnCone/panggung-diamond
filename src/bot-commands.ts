@@ -241,6 +241,22 @@ async function handleKickCommand(
   return null;
 }
 
+async function handleLyricsCommand(
+  message: Message<boolean>
+): Promise<Error | null> {
+  const { lyrics, error } = await JukeBox.getCurrentTrackLyrics(message);
+
+  if (error !== null) {
+    message.channel.send("Maaf, nggak ketemu liriknya");
+    return null;
+  }
+
+  message.channel.send(`**Nyanyi bareng yook**
+
+${lyrics}`);
+  return null;
+}
+
 // Register command here
 export const commandNameAndHandlerDict: iCmdNameAndInfoObj = {
   play: {
@@ -273,5 +289,9 @@ export const commandNameAndHandlerDict: iCmdNameAndInfoObj = {
   kick: {
     description: "Remove bot from channel and stop player",
     handler: handleKickCommand,
+  },
+  lyrics: {
+    description: "Get lyrics of currently playing song",
+    handler: handleLyricsCommand,
   },
 };
