@@ -117,6 +117,10 @@ export class JukeBox {
     // 1. Stop player
     JukeBox.player.stop();
 
+    JukeBox.sendMessageToLastChannel(
+      "**Sudah nggak ada request lagu lagi yaa, silahkan dinikmati makan malamnya om tante...**"
+    );
+
     // 2. Connection estroy
     if (JukeBox.voiceChannelConnection === null) return;
 
